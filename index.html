@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08090b">
+<title>PromptFlow Mobile — câmera + teleprompter</title>
+<style>
+:root{color-scheme:dark;--bg:#08090b;--glass:rgba(10,12,16,.68);--line:rgba(255,255,255,.16);--muted:#aab2c0;--accent:#fff;--danger:#ff4d5f;--safe-top:max(12px,env(safe-area-inset-top));--safe-bottom:max(16px,env(safe-area-inset-bottom))}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{width:100%;height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;overscroll-behavior:none}button,textarea,input{font:inherit}button{touch-action:manipulation}#app{position:fixed;inset:0;overflow:hidden;background:#101217}.camera{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:radial-gradient(circle at 50% 30%,#2d3340,#08090b 68%)}#camera.mirror{transform:scaleX(-1)}.camera-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:34px;text-align:center;background:linear-gradient(180deg,rgba(5,6,8,.18),rgba(5,6,8,.72));color:#e7ebf1;font-size:15px;line-height:1.55}.camera-empty .icon{font-size:38px;display:block;margin-bottom:13px}.camera-empty small{display:block;color:var(--muted);margin-top:7px;font-size:12px}.hidden{display:none!important}.topbar{position:absolute;z-index:10;top:var(--safe-top);left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;pointer-events:none}.brand,.top-actions{pointer-events:auto}.brand{font-size:12px;font-weight:750;letter-spacing:.2px;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:9px 12px;backdrop-filter:blur(14px)}.brand b{font-weight:800}.top-actions{display:flex;gap:8px}.round{border:1px solid var(--line);color:#fff;background:var(--glass);backdrop-filter:blur(14px);width:40px;height:40px;border-radius:50%;display:grid;place-items:center;cursor:pointer;font-size:17px}.round:active,.control:active{transform:scale(.96)}
+/* O texto existe somente na interface: o vídeo gravado recebe o stream da câmera sem essa camada. */
+.prompt-wrap{position:absolute;z-index:6;left:6.5%;right:6.5%;top:14%;height:30%;overflow:hidden;border-radius:17px;border:1px solid rgba(255,255,255,.13);background:rgba(0,0,0,.28);backdrop-filter:blur(9px);box-shadow:0 10px 34px rgba(0,0,0,.2);touch-action:none}.prompt-wrap.lower{top:auto;bottom:25%}.prompt-wrap::before,.prompt-wrap::after{content:"";position:absolute;z-index:2;left:0;right:0;height:34px;pointer-events:none}.prompt-wrap::before{top:0;background:linear-gradient(#00000058,transparent)}.prompt-wrap::after{bottom:0;background:linear-gradient(transparent,#00000058)}.prompt-text{position:absolute;inset:0;padding:38% 10px 46%;font-size:clamp(19px,5.4vw,30px);font-weight:650;line-height:1.38;text-align:center;white-space:pre-wrap;color:#fff;text-shadow:0 2px 4px #000,0 0 12px #000;will-change:transform}.prompt-guide{position:absolute;z-index:3;top:50%;left:9%;right:9%;border-top:1px solid rgba(255,255,255,.34);pointer-events:none}.hint{position:absolute;z-index:7;top:calc(14% + 30% + 9px);left:0;right:0;text-align:center;color:rgba(255,255,255,.75);font-size:10px;text-shadow:0 1px 4px #000;pointer-events:none}.prompt-wrap.lower + .hint{top:auto;bottom:calc(25% - 20px)}
+.bottom{position:absolute;z-index:10;bottom:var(--safe-bottom);left:15px;right:15px;display:grid;grid-template-columns:1fr 76px 1fr;align-items:center;gap:12px}.side-controls{display:flex;gap:8px;align-items:center}.side-controls.right{justify-content:flex-end}.control{border:1px solid var(--line);border-radius:13px;background:var(--glass);backdrop-filter:blur(14px);color:#fff;min-height:45px;padding:0 11px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:7px;cursor:pointer}.control.on{background:rgba(255,255,255,.88);color:#0a0b0d}.record{width:72px;height:72px;border-radius:50%;border:2px solid rgba(255,255,255,.85);padding:5px;background:rgba(0,0,0,.32);cursor:pointer;display:grid;place-items:center;justify-self:center}.record i{display:block;width:50px;height:50px;background:var(--danger);border-radius:50%;transition:.18s}.record.active i{width:25px;height:25px;border-radius:7px}.record.active{border-color:#ffadb5;box-shadow:0 0 0 6px rgba(255,77,95,.18)}.timer{position:absolute;z-index:11;left:50%;transform:translateX(-50%);bottom:calc(var(--safe-bottom) + 82px);font-variant-numeric:tabular-nums;color:white;background:rgba(15,16,19,.68);border:1px solid var(--line);backdrop-filter:blur(12px);border-radius:999px;padding:6px 10px;font-weight:750;font-size:12px}.rec-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--danger);margin-right:5px;animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.26}}
+.notice{position:absolute;z-index:20;left:16px;right:16px;bottom:calc(var(--safe-bottom) + 156px);margin:auto;max-width:390px;background:rgba(19,21,27,.9);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(15px);border-radius:15px;padding:11px 13px;color:#eef1f6;font-size:12px;line-height:1.4;text-align:center;opacity:0;transform:translateY(8px);pointer-events:none;transition:.24s}.notice.on{opacity:1;transform:translateY(0)}.download{position:absolute;z-index:25;left:50%;top:50%;translate:-50% -50%;width:min(86%,350px);border-radius:20px;padding:20px;background:rgba(15,17,22,.96);border:1px solid var(--line);box-shadow:0 18px 60px #000b;text-align:center}.download h2{margin:0 0 7px;font-size:19px}.download p{margin:0 0 17px;color:var(--muted);font-size:13px;line-height:1.45}.download a,.download button{display:flex;align-items:center;justify-content:center;width:100%;min-height:47px;border-radius:12px;border:0;background:#fff;color:#0c0d10;text-decoration:none;font-size:14px;font-weight:800;margin-top:8px}.download button{background:transparent;color:#fff;border:1px solid var(--line);cursor:pointer}
+.sheet-backdrop{position:absolute;z-index:29;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(4px);transition:.25s}.sheet{position:absolute;z-index:30;left:0;right:0;bottom:0;max-height:87%;overflow:auto;padding:10px 18px calc(24px + env(safe-area-inset-bottom));background:#15171d;border-top:1px solid var(--line);border-radius:24px 24px 0 0;box-shadow:0 -15px 55px #0008;transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}.sheet.open{transform:translateY(0)}.grab{width:38px;height:4px;border-radius:4px;background:#6c7380;margin:2px auto 15px}.sheet-head{display:flex;justify-content:space-between;align-items:start;gap:14px;margin-bottom:16px}.sheet h1{font-size:20px;letter-spacing:-.4px;margin:0 0 4px}.sheet p{color:var(--muted);font-size:12px;line-height:1.45;margin:0}.close-sheet{border:0;background:#252933;color:#fff;border-radius:50%;width:32px;height:32px;font-size:18px}.field-label{display:block;margin:16px 0 7px;color:#dfe4ec;font-size:12px;font-weight:750}.script-input{width:100%;height:165px;resize:vertical;border:1px solid var(--line);border-radius:14px;background:#0b0d11;color:#f4f6fa;padding:12px;font-size:14px;line-height:1.45;outline:0}.script-input:focus{border-color:#848d9b}.row{display:flex;gap:11px;align-items:center}.row label{flex:1;font-size:12px;color:#dfe4ec}.row output{font-variant-numeric:tabular-nums;font-size:12px;color:#fff;background:#292e38;border-radius:7px;padding:4px 6px;min-width:43px;text-align:center}input[type=range]{width:100%;accent-color:#fff}.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:7px}.seg button{background:transparent;border:0;color:var(--muted);padding:10px 8px;font-size:12px;font-weight:750}.seg button.on{background:#f6f7fa;color:#101217}.save{margin-top:20px;width:100%;border:0;border-radius:13px;background:#fff;color:#0d0f13;min-height:52px;font-size:15px;font-weight:850}.privacy{margin-top:12px!important;font-size:11px!important;text-align:center}.unsupported{margin-top:14px;border:1px solid #9c6e2d;background:#3f2d1199;color:#f9dcad;border-radius:11px;padding:10px;font-size:12px;line-height:1.4}@media (max-height:650px){.prompt-wrap{top:13%;height:28%}.bottom{bottom:8px}.timer{bottom:84px}.hint{display:none}}@media (min-width:700px){#app{max-width:480px;margin:auto;box-shadow:0 0 80px #000}.sheet{max-width:480px;margin:auto}}
+</style>
+</head>
+<body>
+<div id="app">
+  <video id="camera" class="camera mirror" autoplay muted playsinline></video>
+  <div id="cameraEmpty" class="camera-empty"><div><span class="icon">◉</span><b>Teste de câmera + teleprompter</b><small>Abra Configurações, escreva seu texto e permita câmera e microfone.</small></div></div>
+
+  <div class="topbar">
+    <div class="brand"><b>PromptFlow</b> · MOBILE</div>
+    <div class="top-actions"><button id="flipBtn" class="round" aria-label="Trocar câmera" title="Trocar câmera">↻</button><button id="settingsBtn" class="round" aria-label="Configurações" title="Configurações">⚙</button></div>
+  </div>
+
+  <div id="promptWrap" class="prompt-wrap" aria-label="Texto do teleprompter"><div id="promptText" class="prompt-text"></div><div class="prompt-guide"></div></div>
+  <div class="hint">Arraste o texto para ajustar · o texto não aparece no vídeo gravado</div>
+
+  <div id="timer" class="timer hidden"><span class="rec-dot"></span><span id="timerText">00:00</span></div>
+  <div class="bottom">
+    <div class="side-controls"><button id="playBtn" class="control on" aria-label="Pausar ou iniciar texto">Ⅱ <span>Texto</span></button></div>
+    <button id="recordBtn" class="record" aria-label="Iniciar gravação" title="Iniciar gravação"><i></i></button>
+    <div class="side-controls right"><button id="resetBtn" class="control" aria-label="Reiniciar texto">↺</button><button id="positionBtn" class="control" aria-label="Mover texto para baixo" title="Mover texto para baixo">⇵</button></div>
+  </div>
+
+  <div id="notice" class="notice" role="status"></div>
+  <div id="downloadBox" class="download hidden"><h2>Gravação concluída</h2><p>O vídeo contém câmera e microfone. O texto do teleprompter não foi incluído.</p><a id="saveLink" href="#" download>Salvar vídeo</a><button id="closeDownload">Gravar outro</button></div>
+
+  <div id="sheetBackdrop" class="sheet-backdrop"></div>
+  <section id="sheet" class="sheet open" aria-label="Configurações de gravação">
+    <div class="grab"></div>
+    <div class="sheet-head"><div><h1>Gravar com teleprompter</h1><p>O texto fica na sua tela, perto da lente. A gravação salva apenas sua imagem e voz.</p></div><button id="closeSheet" class="close-sheet" aria-label="Fechar configurações">×</button></div>
+    <label class="field-label" for="scriptInput">Seu roteiro</label>
+    <textarea id="scriptInput" class="script-input" placeholder="Escreva ou cole seu roteiro aqui..."></textarea>
+    <label class="field-label" for="fontRange">Tamanho do texto</label>
+    <div class="row"><input id="fontRange" type="range" min="18" max="38" value="25"><output id="fontOut">25 px</output></div>
+    <label class="field-label" for="speedRange">Velocidade de rolagem</label>
+    <div class="row"><input id="speedRange" type="range" min="4" max="70" value="19"><output id="speedOut">19</output></div>
+    <label class="field-label">Posição do texto</label>
+    <div class="seg"><button id="topPos" class="on" type="button">Perto da lente</button><button id="bottomPos" type="button">Mais abaixo</button></div>
+    <div id="secureWarning" class="unsupported hidden"></div>
+    <button id="applyBtn" class="save">Usar câmera e iniciar teste</button>
+    <p class="privacy">A câmera e o microfone só são usados após a sua permissão. Nada é enviado para a internet por este teste.</p>
+  </section>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const camera=$('camera'), empty=$('cameraEmpty'), promptText=$('promptText'), promptWrap=$('promptWrap');
+  const sheet=$('sheet'), backdrop=$('sheetBackdrop'), scriptInput=$('scriptInput'), fontRange=$('fontRange'), speedRange=$('speedRange');
+  const recordBtn=$('recordBtn'), playBtn=$('playBtn'), resetBtn=$('resetBtn'), positionBtn=$('positionBtn'), flipBtn=$('flipBtn');
+  const notice=$('notice'), timer=$('timer'), timerText=$('timerText'), downloadBox=$('downloadBox'), saveLink=$('saveLink');
+  const stored = JSON.parse(localStorage.getItem('pf_mobile_camera_test') || '{}');
+  const sample='Olá! Este é um teste de gravação com teleprompter.\n\nVocê consegue olhar para a câmera enquanto acompanha o texto na tela.\n\nA gravação final terá sua imagem e sua voz, sem exibir este texto.';
+  const state={stream:null,facing:stored.facing||'user',scroll:0,playing:false,last:0,raf:0,drag:null,recorder:null,chunks:[],recording:false,recordStarted:0,timerInterval:0,position:stored.position||'top',mime:''};
+  scriptInput.value=stored.script||sample; fontRange.value=stored.font||25; speedRange.value=stored.speed||19;
+  let noticeTimeout;
+  function msg(text,ms=3600){notice.textContent=text;notice.classList.add('on');clearTimeout(noticeTimeout);noticeTimeout=setTimeout(()=>notice.classList.remove('on'),ms)}
+  function persist(){localStorage.setItem('pf_mobile_camera_test',JSON.stringify({script:scriptInput.value,font:+fontRange.value,speed:+speedRange.value,position:state.position,facing:state.facing}))}
+  function render(){
+    promptText.textContent=scriptInput.value.trim()||'Seu texto aparecerá aqui.';
+    promptText.style.fontSize=fontRange.value+'px';
+    $('fontOut').textContent=fontRange.value+' px'; $('speedOut').textContent=speedRange.value;
+    promptWrap.classList.toggle('lower',state.position==='bottom');
+    $('topPos').classList.toggle('on',state.position==='top'); $('bottomPos').classList.toggle('on',state.position==='bottom');
+    applyScroll();persist();
+  }
+  function maxScroll(){return Math.max(0,promptText.scrollHeight-promptWrap.clientHeight+Math.round(promptWrap.clientHeight*.46))}
+  function applyScroll(){state.scroll=Math.max(0,Math.min(state.scroll,maxScroll()));promptText.style.transform=`translateY(${-state.scroll}px)`}
+  function animate(t){if(!state.last)state.last=t;const dt=Math.min(80,t-state.last);state.last=t;if(state.playing&&!state.drag){state.scroll+=(+speedRange.value)*dt/1000; if(state.scroll>=maxScroll())state.playing=false;applyScroll()}state.raf=requestAnimationFrame(animate)}
+  function updatePlay(){playBtn.classList.toggle('on',state.playing);playBtn.innerHTML=state.playing?'Ⅱ <span>Texto</span>':'▶ <span>Texto</span>';}
+  function openSheet(){sheet.classList.add('open');backdrop.classList.remove('hidden')}
+  function closeSheet(){sheet.classList.remove('open');backdrop.classList.add('hidden')}
+  function stopStream(){if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null;camera.srcObject=null}}
+  async function startCamera(){
+    if(!window.isSecureContext || !navigator.mediaDevices?.getUserMedia){$('secureWarning').textContent='A câmera exige uma página segura (HTTPS). Abra este teste pelo link de prévia, não diretamente como arquivo.';$('secureWarning').classList.remove('hidden');return false}
+    try{
+      stopStream();
+      const constraints={video:{facingMode:{ideal:state.facing},width:{ideal:1080},height:{ideal:1920}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}};
+      state.stream=await navigator.mediaDevices.getUserMedia(constraints);
+      camera.srcObject=state.stream;camera.classList.toggle('mirror',state.facing==='user');await camera.play();empty.classList.add('hidden');$('secureWarning').classList.add('hidden');return true;
+    }catch(err){console.error(err);const named=err.name==='NotAllowedError'?'Permissão negada. Autorize câmera e microfone no navegador.':err.name==='NotFoundError'?'Não encontrei câmera ou microfone neste aparelho.':'Não foi possível iniciar a câmera: '+err.message;$('secureWarning').textContent=named;$('secureWarning').classList.remove('hidden');return false}
+  }
+  function mediaOptions(){const types=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];const type=types.find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t));state.mime=type||'';return type?{mimeType:type,videoBitsPerSecond:4500000}:undefined}
+  function fmt(sec){return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(Math.floor(sec%60)).padStart(2,'0')}
+  function startTimer(){timer.classList.remove('hidden');state.recordStarted=Date.now();timerText.textContent='00:00';state.timerInterval=setInterval(()=>timerText.textContent=fmt((Date.now()-state.recordStarted)/1000),250)}
+  function stopTimer(){clearInterval(state.timerInterval);timer.classList.add('hidden')}
+  function startRecord(){
+    if(!state.stream){msg('Primeiro permita o uso da câmera e do microfone.');openSheet();return}
+    if(!window.MediaRecorder){msg('Este navegador permite prévia, mas não gravação. Tente Chrome ou Safari atualizado.',5000);return}
+    try{
+      state.chunks=[];state.recorder=new MediaRecorder(state.stream,mediaOptions());
+      state.recorder.ondataavailable=e=>{if(e.data.size)state.chunks.push(e.data)};
+      state.recorder.onstop=finishRecord;state.recorder.start(1000);state.recording=true;recordBtn.classList.add('active');recordBtn.setAttribute('aria-label','Parar gravação');startTimer();msg('Gravando. O texto não aparecerá no vídeo.');
+    }catch(e){console.error(e);msg('Não foi possível iniciar a gravação neste navegador.',5000)}
+  }
+  function stopRecord(){if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();state.recording=false;recordBtn.classList.remove('active');recordBtn.setAttribute('aria-label','Iniciar gravação');stopTimer()}
+  function finishRecord(){const type=state.mime||state.chunks[0]?.type||'video/webm';const blob=new Blob(state.chunks,{type});const url=URL.createObjectURL(blob);saveLink.href=url;saveLink.download='promptflow-'+new Date().toISOString().replace(/[:.]/g,'-')+(type.includes('mp4')?'.mp4':'.webm');downloadBox.classList.remove('hidden')}
+  function switchPosition(pos){state.position=pos;render()}
+  function closeDownload(){downloadBox.classList.add('hidden');state.scroll=0;applyScroll()}
+  $('applyBtn').addEventListener('click',async()=>{render();const ok=await startCamera();if(ok){state.scroll=0;state.playing=true;applyScroll();updatePlay();closeSheet();msg('Câmera pronta. Confira o enquadramento e toque no botão vermelho para gravar.')}});
+  $('settingsBtn').addEventListener('click',openSheet);$('closeSheet').addEventListener('click',closeSheet);backdrop.addEventListener('click',closeSheet);
+  fontRange.addEventListener('input',render);speedRange.addEventListener('input',render);scriptInput.addEventListener('input',render);
+  $('topPos').addEventListener('click',()=>switchPosition('top'));$('bottomPos').addEventListener('click',()=>switchPosition('bottom'));
+  playBtn.addEventListener('click',()=>{state.playing=!state.playing;updatePlay()});resetBtn.addEventListener('click',()=>{state.scroll=0;state.playing=false;applyScroll();updatePlay()});positionBtn.addEventListener('click',()=>switchPosition(state.position==='top'?'bottom':'top'));
+  recordBtn.addEventListener('click',()=>state.recording?stopRecord():startRecord());$('closeDownload').addEventListener('click',closeDownload);
+  flipBtn.addEventListener('click',async()=>{if(state.recording){msg('Pare a gravação antes de trocar de câmera.');return}state.facing=state.facing==='user'?'environment':'user';render();if(await startCamera())msg(state.facing==='user'?'Câmera frontal ativada.':'Câmera traseira ativada.');});
+  promptWrap.addEventListener('pointerdown',e=>{state.drag={y:e.clientY,scroll:state.scroll,wasPlaying:state.playing};state.playing=false;promptWrap.setPointerCapture?.(e.pointerId);updatePlay()});
+  promptWrap.addEventListener('pointermove',e=>{if(!state.drag)return;state.scroll=state.drag.scroll+(state.drag.y-e.clientY);applyScroll()});
+  function endDrag(){if(!state.drag)return;state.drag=null}promptWrap.addEventListener('pointerup',endDrag);promptWrap.addEventListener('pointercancel',endDrag);
+  window.addEventListener('beforeunload',()=>{if(state.recording)stopRecord();stopStream()});
+  render();updatePlay();state.raf=requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
